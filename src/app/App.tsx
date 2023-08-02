@@ -1,17 +1,18 @@
 import { FC } from 'react';
 
-import { Pagination } from '../components/Pagination';
-import { Search } from '../components/Search';
-import { Table } from '../components/Table/Table';
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 
-const App: FC = () => {
+import { MainPage } from '../pages/MainPage';
+import NotFoundPage from '../pages/NotFoundPage';
+
+export const App: FC = () => {
   return (
-    <div className="w-full md:p-0 md:w-11/12 mx-auto p-2">
-      <Search />
-      <Table />
-      <Pagination />
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Navigate to="/1" />} />
+        <Route path="/:page" element={<MainPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Router>
   );
 };
-
-export default App;

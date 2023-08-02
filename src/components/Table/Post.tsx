@@ -1,6 +1,6 @@
 import { FC } from 'react';
 
-import { IPost } from '../types';
+import { IPost } from '../../types';
 
 type PropsType = {
   post: IPost;

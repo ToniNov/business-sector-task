@@ -1,23 +1,15 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 import { jsonplaceholderApi } from '../api/JSONPlaceholder-api';
-import { handleAsyncServerNetworkError } from '../helpers/error-utils';
-import { IPost } from '../types';
-
-import { appActions } from './Actions';
+import { IPost, RequestStatusType } from '../types';
 
 export const fetchPosts = createAsyncThunk<IPost[], void, { rejectValue: string }>(
   'posts/fetchPosts',
-  async (_, thunkAPI): Promise<any> => {
-    thunkAPI.dispatch(appActions.setAppStatus({ status: 'loading' }));
+  async (): Promise<IPost[]> => {
     try {
-      const response = await jsonplaceholderApi.getPosts();
-
-      thunkAPI.dispatch(appActions.setAppStatus({ status: 'succeeded' }));
-
-      return response;
+      return await jsonplaceholderApi.getPosts();
     } catch (error: any) {
-      handleAsyncServerNetworkError(error, thunkAPI);
+      throw new Error(`Error fetching posts: ${error.message}`);
     }
   },
 );
@@ -25,11 +17,15 @@ export const fetchPosts = createAsyncThunk<IPost[], void, { rejectValue: string 
 export interface PostsState {
   posts: IPost[];
   originalPosts: IPost[];
+  status: RequestStatusType;
+  error?: string;
 }
 
 const initialState: PostsState = {
   posts: [],
   originalPosts: [],
+  status: 'idle',
+  error: '',
 };
 
 const postsSlice = createSlice({
@@ -43,7 +39,7 @@ const postsSlice = createSlice({
       const { key, direction } = action.payload;
       const sign = direction === 'descending' ? -1 : 1;
 
-      const sortedPost = state.posts.sort((a, b) => {
+      state.posts = state.posts.sort((a: any, b: any) => {
         if (a[key] > b[key]) {
           return sign;
         }
@@ -53,8 +49,6 @@ const postsSlice = createSlice({
 
         return 0;
       });
-
-      state.posts = sortedPost;
     },
     searchString: (state, action: PayloadAction<string>) => {
       const query = action.payload.toLowerCase();
@@ -74,10 +68,19 @@ const postsSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(fetchPosts.fulfilled, (state, action) => {
-      state.posts = action.payload;
-      state.originalPosts = action.payload;
-    });
+    builder
+      .addCase(fetchPosts.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchPosts.fulfilled, (state, action) => {
+        state.posts = action.payload;
+        state.originalPosts = action.payload;
+        state.status = 'succeeded';
+      })
+      .addCase(fetchPosts.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      });
   },
 });
 
